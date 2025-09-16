@@ -105,6 +105,16 @@
             <canvas id="myChart" width="400" height="400"></canvas>
           </p>
         </article>
+
+        <!-- New D3 Donut Chart -->
+        <article>
+          <h1>D3 Donut Chart</h1>
+          <div
+            id="d3-donut"
+            role="img"
+            aria-label="Budget distribution donut chart"
+          ></div>
+        </article>
       </section>
     </main>
 
@@ -126,6 +136,9 @@
       crossorigin="anonymous"
       role="img"
     ></script>
+
+    <!-- Add D3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 
     <script>
       var dataSource = {
@@ -166,6 +179,88 @@
       }
 
       getBudget();
+
+      // D3 Donut Chart
+      function renderDonutChart(budgetItems) {
+        const container = document.getElementById("d3-donut");
+        container.innerHTML = ""; // clear if re-rendered
+
+        const width = 400;
+        const height = 400;
+        const margin = 10;
+        const radius = Math.min(width, height) / 2 - margin;
+
+        const titles = budgetItems.map((d) => d.title);
+        const colors = d3
+          .scaleOrdinal()
+          .domain(titles)
+          .range([
+            "#ffcd56",
+            "#ff6384",
+            "#36a2eb",
+            "#fd6b19",
+            "#4bc0c0",
+            "#9966ff",
+            "#c9cbcf",
+            "#f67019",
+          ]);
+
+        const svg = d3
+          .select("#d3-donut")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height)
+          .append("g")
+          .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+        const pie = d3
+          .pie()
+          .sort(null)
+          .value((d) => d.budget);
+
+        const dataReady = pie(budgetItems);
+
+        const arc = d3
+          .arc()
+          .innerRadius(radius * 0.55) // controls the donut hole size
+          .outerRadius(radius);
+
+        const arcs = svg
+          .selectAll("path")
+          .data(dataReady)
+          .enter()
+          .append("path")
+          .attr("d", arc)
+          .attr("fill", (d) => colors(d.data.title))
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        // Accessible tooltips
+        arcs.append("title").text((d) => `${d.data.title}: ${d.data.budget}`);
+
+        // Optional: centered total
+        const total = budgetItems.reduce(
+          (sum, d) => sum + Number(d.budget || 0),
+          0
+        );
+        svg
+          .append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .style("font", "bold 14px sans-serif")
+          .text(`Total: ${total}`);
+      }
+
+      function getBudgetForDonut() {
+        axios
+          .get("/budget")
+          .then(function (res) {
+            renderDonutChart(res.data.myBudget || []);
+          })
+          .catch(console.error);
+      }
+
+      getBudgetForDonut();
     </script>
   </body>
 </html>
